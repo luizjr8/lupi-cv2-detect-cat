@@ -1,8 +1,11 @@
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'  # Suprime banner do pygame
+os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
+
 import cv2
 import torch
 import time
 import warnings
-import os
 import pygame  # Para reprodução de áudio
 
 # Variáveis globais para controle do som
@@ -11,7 +14,16 @@ INTERVALO_SOM = 5  # segundos de intervalo entre os sons
 
 # Ignorar avisos
 warnings.filterwarnings('ignore')
-os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
+
+BANNER = """
+  /\\_____/\\
+ /  o   o  \\    L U P E   C A T   D E T E C T O R
+( ==  ^  == )   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ )         (    Deteccao de gatos em tempo real
+(           )   com YOLOv5 + OpenCV
+ \\  || ||  /
+  \\_||||_-'
+"""
 
 # Constantes
 CONFIANCA_MINIMA = 0.25  # Limiar de confiança para detecção
@@ -20,7 +32,6 @@ CLASSE_GATO = 15         # ID da classe 'gato' no COCO dataset
 
 # Configuração do dispositivo (GPU/CPU)
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"Usando dispositivo: {DEVICE}")
 
 def carregar_modelo():
     """Carrega o modelo YOLOv5 pré-treinado"""
@@ -88,6 +99,8 @@ def detectar_gato(model, frame):
 
 def main():
     """Função principal que gerencia a captura de vídeo e detecção"""
+    print(BANNER)
+    print(f"Dispositivo: {DEVICE}")
     # Inicializa o mixer de áudio suprimindo erros ALSA de baixo nível
     try:
         devnull_fd = os.open(os.devnull, os.O_WRONLY)
