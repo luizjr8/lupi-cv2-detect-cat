@@ -2,6 +2,7 @@ import cv2
 import torch
 import time
 import warnings
+import os
 import pygame  # Para reprodução de áudio
 
 # Variáveis globais para controle do som
@@ -10,6 +11,7 @@ INTERVALO_SOM = 5  # segundos de intervalo entre os sons
 
 # Ignorar avisos
 warnings.filterwarnings('ignore')
+os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
 
 # Constantes
 CONFIANCA_MINIMA = 0.25  # Limiar de confiança para detecção
@@ -86,14 +88,30 @@ def detectar_gato(model, frame):
 
 def main():
     """Função principal que gerencia a captura de vídeo e detecção"""
-    # Inicializa o mixer de áudio
+    # Inicializa o mixer de áudio suprimindo erros ALSA de baixo nível
     try:
-        pygame.mixer.init()
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        old_stderr = os.dup(2)
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+        try:
+            pygame.mixer.init()
+        finally:
+            os.dup2(old_stderr, 2)
+            os.close(old_stderr)
     except Exception as e:
         print(f"Aviso: Não foi possível inicializar o sistema de áudio: {e}")
     
-    # Inicializa a webcam
-    cap = cv2.VideoCapture(0)
+    # Inicializa a webcam (suprime logs C++ do OpenCV durante abertura)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    old_stderr = os.dup(2)
+    os.dup2(devnull_fd, 2)
+    os.close(devnull_fd)
+    try:
+        cap = cv2.VideoCapture(0)
+    finally:
+        os.dup2(old_stderr, 2)
+        os.close(old_stderr)
     if not cap.isOpened():
         print("Erro: Não foi possível abrir a webcam")
         return
