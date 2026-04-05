@@ -1,3 +1,7 @@
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'  # Suprime banner do pygame
+os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
+
 import cv2
 import torch
 import time
@@ -11,6 +15,16 @@ INTERVALO_SOM = 5  # segundos de intervalo entre os sons
 # Ignorar avisos
 warnings.filterwarnings('ignore')
 
+BANNER = """
+  /\\_____/\\
+ /  o   o  \\    L U P E   C A T   D E T E C T O R
+( ==  ^  == )   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ )         (    Deteccao de gatos em tempo real
+(           )   com YOLOv5 + OpenCV
+ \\  || ||  /
+  \\_||||_-'
+"""
+
 # Constantes
 CONFIANCA_MINIMA = 0.25  # Limiar de confiança para detecção
 TAMANHO_IMAGEM = 640     # Tamanho da imagem para o modelo
@@ -18,7 +32,6 @@ CLASSE_GATO = 15         # ID da classe 'gato' no COCO dataset
 
 # Configuração do dispositivo (GPU/CPU)
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"Usando dispositivo: {DEVICE}")
 
 def carregar_modelo():
     """Carrega o modelo YOLOv5 pré-treinado"""
@@ -86,14 +99,32 @@ def detectar_gato(model, frame):
 
 def main():
     """Função principal que gerencia a captura de vídeo e detecção"""
-    # Inicializa o mixer de áudio
+    print(BANNER)
+    print(f"Dispositivo: {DEVICE}")
+    # Inicializa o mixer de áudio suprimindo erros ALSA de baixo nível
     try:
-        pygame.mixer.init()
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        old_stderr = os.dup(2)
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+        try:
+            pygame.mixer.init()
+        finally:
+            os.dup2(old_stderr, 2)
+            os.close(old_stderr)
     except Exception as e:
         print(f"Aviso: Não foi possível inicializar o sistema de áudio: {e}")
     
-    # Inicializa a webcam
-    cap = cv2.VideoCapture(0)
+    # Inicializa a webcam (suprime logs C++ do OpenCV durante abertura)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    old_stderr = os.dup(2)
+    os.dup2(devnull_fd, 2)
+    os.close(devnull_fd)
+    try:
+        cap = cv2.VideoCapture(0)
+    finally:
+        os.dup2(old_stderr, 2)
+        os.close(old_stderr)
     if not cap.isOpened():
         print("Erro: Não foi possível abrir a webcam")
         return
